@@ -1,0 +1,69 @@
+# BAN modified Andrew Secure RPC, simplified
+# Modeled by: Victor Hayashi
+
+# Notes:
+# - Based on BAN modified Andrew Secure RPC (modelled after description in SPORE library http://www.lsv.ens-cachan.fr/spore/andrewBAN.html)
+# - Retired customized claims I5 and R5
+# - Retired customized descriptions and altered SessionKey to SharedKey
+# - Altered according to concrete realization proposed in BAN paper, removed nr AND nr2
+# - Substituted sync claims by alive and weakagree claims
+# - Substituted I by TD, R by BS, ni by NTD, kir by k2
+# - Included TM and associated messages
+
+usertype SharedKey;
+
+protocol changek2tdtm(TD,TM,BS)
+{
+    role TD
+    {
+        fresh NTD: Nonce;
+        var k2: SharedKey;
+
+        send_1(TD,TM, {TD,NTD}k(TD,TM) );
+	recv_4(TM,TD, {TD,NTD,k2}k(TD,BS));
+	send_5(TD,TM, {NTD}k2(TD,TM) );
+
+        claim_I1(TD,Alive);
+        claim_I2(TD,Weakagree);
+
+        claim_I3(TD,Secret, k2);
+        claim_I4(TD,Secret, k(TD,TM));
+    } 
+
+   role TM
+    {
+	var NTD: Nonce;
+	var k2: SharedKey;
+	fresh NTM: Nonce;
+
+	recv_1(TD,TM, {TD,NTD}k(TD,TM) );
+	send_2(TM,BS, { {TD,NTD}k(TD,TM),TM,NTM}k(TM,BS) );
+	recv_3(BS,TM, {{TD,NTD,k2}k(TD,BS), TM,NTM,k2}k(TM,BS) );
+	send_4(TM,TD, {TD,NTD,k2}k(TD,BS));
+	recv_5(TD,TM, {NTD}k2(TD,TM) );
+	send_6(TM,BS, {{NTD}k2(TD,TM) }k(TM,BS) );
+
+	claim_B1(TM,Alive);
+        claim_B2(TM,Weakagree);
+
+        claim_B3(TM,Secret, k2);
+        claim_B4(TM,Secret, k(TD,TM));
+    }
+    
+    role BS
+    {
+        var NTD: Nonce;
+        fresh k2: SharedKey;
+	var NTM: Nonce;
+
+        recv_2(TM,BS, { {TD,NTD}k(TD,TM),TM,NTM}k(TM,BS) );
+	send_3(BS,TM, {{TD,NTD,k2}k(TD,BS), TM,NTM,k2}k(TM,BS) );
+	recv_6(TM,BS, {{NTD}k2(TD,TM) }k(TM,BS) );
+
+        claim_R1(BS,Alive);
+        claim_R2(BS,Weakagree);
+
+        claim_R3(BS,Secret, k2);
+        claim_R4(BS,Secret, k(TD,BS));
+    }
+}

@@ -1,0 +1,97 @@
+/*
+ * Modeled from ISO/IEC 9798; Cas Cremers, Dec. 2010 scyther model
+ * Modeler: Victor Hayashi
+ *
+ * symmetric
+ * mutual
+ *
+ * Notes:
+* - Agent A was replaced by TD (Trusted Device)
+* - Agent B was replaced by BS (Bank Server)
+* - Retired symmetric-role partnering function
+* - Retired additional Text1, Text2, Text3, Text4 and Text5
+* - Changed order of factors in messages 2 and 3 to be identical to specification
+* - Added identifier (bs,td) as var/fresh Tickets and added secret claims
+* - Retired Running and Commit claims
+* - Replaced R in Nonces by N
+* - Put NTD nonce out of symmetric cryptographic function in message 2
+* - Simplified according to BAN Logic
+* - Added TM and associated messages
+* - Added only one-role-per-agent
+
+* - Max number of runs: 2, find all type flaws, Find all attacks
+* - Added NTD to K1 encrypt in messages M3, M4 -> reduced one attack
+* - Added K3 and encrypted NBS in message M1 -> eliminated attacks
+
+* - Max number of runs: 3, find all type flaws, Find all attacks
+* - Added double encryption in message M1 -> eliminated attacks
+*/
+
+//option "--one-role-per-agent"; //disallow agents in multiple roles
+
+protocol auth(TD,TM,BS)
+{
+	role TD
+	{
+		var NBS: Nonce;
+		fresh NTD: Nonce;
+
+		fresh bs: Ticket;
+		var td: Ticket;
+
+		recv_2(TM,TD, {NBS, td}k(TD,TM));
+
+		send_3(TD,TM, {{ NTD, NBS, bs }k(TD,BS)} k(TD,TM));
+		
+		recv_6(TM, TD, {{ NTD, NBS, td }k(TD,BS)}k(TD,TM));
+
+		claim(TD,Alive);
+		claim(TD,Weakagree);
+
+		claim(TD,Secret,td);
+		claim(TD,Secret,bs);
+	}
+
+	role TM
+	{
+		var NBS: Nonce;
+		var bs: Ticket;
+		
+		var NTD: Nonce;
+		fresh td: Ticket;
+
+		recv_1(BS,TM, {{NBS,td}k(TD,TM)} k(TM,BS));
+
+		send_2(TM,TD, {NBS, td}k(TD,TM));
+
+		recv_3(TD,TM, {{ NTD, NBS, bs }k(TD,BS)} k(TD,TM));
+
+		send_4(TM,BS, { NTD, NBS, bs }k(TD,BS));
+
+		recv_5(BS,TM, { NTD, NBS, td }k(TD,BS) );
+
+		send_6(TM, TD, {{ NTD, NBS, td }k(TD,BS)}k(TD,TM));
+	}
+
+	role BS
+	{
+		fresh NBS: Nonce;
+		var NTD: Nonce;
+
+		var bs: Ticket;
+		fresh td: Ticket;
+
+		send_1(BS,TM, {{NBS,td}k(TD,TM)} k(TM,BS));
+
+		recv_4(TM,BS, { NTD, NBS, bs }k(TD,BS));
+
+		send_5(BS,TM, { NTD, NBS, td }k(TD,BS) );
+
+		claim(BS,Alive);
+		claim(BS,Weakagree);
+		
+		claim(BS,Secret,td);
+		claim(BS,Secret,bs);
+	}
+}
+

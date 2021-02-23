@@ -1,0 +1,49 @@
+# BAN modified Andrew Secure RPC, simplified
+# Modeled by: Victor Hayashi
+
+# Notes:
+# - Based on BAN modified Andrew Secure RPC (modelled after description in SPORE library http://www.lsv.ens-cachan.fr/spore/andrewBAN.html)
+# - Retired customized claims I5 and R5
+# - Retired customized descriptions and altered SessionKey to SharedKey
+# - Altered according to concrete realization proposed in BAN paper, removed nr AND nr2
+# - Substituted sync claims by alive and weakagree claims
+# - Substituted I by TD, R by BS, ni by NTD, k1 BY k1
+
+usertype SharedKey;
+
+protocol k3tmbs(TM,BS)
+{
+    role TM
+    {
+        fresh NTM: Nonce;
+        var k3: SharedKey;
+
+        send_1(TM,BS, TM,NTM);
+        recv_2(BS,TM, {NTM,k3}k(TM,BS) );
+        send_3(TM,BS, {NTM}k3(TM,BS) );
+
+        claim_I1(TM,Alive);
+        claim_I2(TM,Weakagree);
+        claim_I3(TM,Secret, k3);
+        claim_I4(TM,Secret, k(TM,BS));
+	claim_I5(TM,Niagree);
+	claim_I6(TM,Nisynch);
+    } 
+    
+    role BS
+    {
+        var NTM: Nonce;
+        fresh k3: SharedKey;
+
+        recv_1(TM,BS, TM,NTM);
+        send_2(BS,TM, {NTM,k3}k(TM,BS) );
+        recv_3(TM,BS, {NTM}k3(TM,BS) );
+
+        claim_R1(BS,Alive);
+        claim_R2(BS,Weakagree);
+        claim_R3(BS,Secret, k3);
+        claim_R4(BS,Secret, k(TM,BS));
+	claim_R5(BS,Niagree);
+	claim_R6(BS,Nisynch);
+    }
+}
